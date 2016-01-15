@@ -320,7 +320,8 @@ TypeOk == LET midSubsets == (SUBSET MID)     \* for efficiency - only calculate 
           /\ NWTypeOK
           /\ eagerPushPeers \in p2p
           /\ lazyPushPeers \in p2p
-          /\ receivedUpdates \in [Peer -> UNION {[T -> MBody] : T \in midSubsets}]
+          /\ \A p \in Peer: /\ DOMAIN receivedUpdates[p] \in midSubsets
+                            /\ \A id \in DOMAIN receivedUpdates[p]: receivedUpdates[p][id] \in MBody
           /\ missingUpdateSrcs \in [Peer -> UNION {[T -> seqPeer] : T \in midSubsets}]
           /\ timers \in [Peer -> seqMid]
           /\ message \in [Peer -> Msg]
