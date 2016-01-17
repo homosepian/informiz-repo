@@ -43,6 +43,35 @@ NWTypeOK == /\ msgCounter \in Nat
             /\ \A p1 \in Peer, p2 \in Peer: /\ commChannels[p1, p2].in \in Seq(Msg) 
                                             /\ commChannels[p1, p2].out \in Seq(Msg)
 
+\* Initial state predicate: channels are empty and current message number is 1
+NWInit == /\ commChannels = [peer1 \in Peer, peer2 \in Peer |->
+                                             [in |-> <<>>, out |-> <<>>] ]
+          /\ msgCounter = 1
+
+
+\**************************** Test-Spec Body ****************************
+\* This behavior spec sends dummy messages and checks they arrive
+-------------------------------------------------------------------------
+
+\* A communication step consists of either sending to receiving a message
+LOCAL Comm(self) == \/ /\ msgCounter <= MAX_MSG
+                       /\ \E m \in Msg, p \in Peer: Send(m, self, p)
+                       /\ msgCounter' = msgCounter + 1
+                    \/ \E p \in Peer: /\ HasMsg(self, p)
+                                      /\ Receive(self, p)
+
+\* The next-state relation: send or receive a message, or stutter if done communicating
+LOCAL NWNext == \/ (\E self \in Peer: Comm(self))
+                \/ (* Disjunct to prevent deadlock on termination *)
+                   /\ msgCounter > MAX_MSG
+                   /\ \A p1 \in Peer, p2 \in Peer: Len(commChannels[p1, p2].in) = 0
+                   /\ UNCHANGED netvars
+
+\* The test-spec - send and receive messages until MAX_MSG messages have been exchanged              
+LOCAL NWSpec == /\ NWInit /\ [][NWNext]_netvars
+                /\ \A self \in Peer : WF_netvars(Comm(self))
+
+
 \* A recursive function for counting all messages received from a given peer
 Count[i \in Peer, P \in SUBSET Peer] == IF P = {} THEN 0 
                                         ELSE LET j == CHOOSE p \in P: TRUE 
@@ -55,38 +84,9 @@ CountMsgs[P \in SUBSET Peer] == IF P = {} THEN 0
                                                IN Count[i, Peer] + 
                                                   CountMsgs[P \ {i}]
 
-\* Temporal formula asserting that once no more messages are sent- all sent messages are 
+\* Temporal formula asserting that once no more messages are sent - all sent messages are 
 \* eventually received at their target peers
-Liveness == msgCounter > MAX_MSG ~> /\ \A p1 \in Peer, p2 \in Peer: Len(commChannels[p1, p2].in) = 0
-                                    /\ CountMsgs[Peer] = MAX_MSG  
-
-
-\* Initial state predicate: channels are empty and current message number is 1
-NWInit == /\ commChannels = [peer1 \in Peer, peer2 \in Peer |->
-                                             [in |-> <<>>, out |-> <<>>] ]
-          /\ msgCounter = 1
-
-
-\**************************** Test-Spec Body ****************************
-\* This behavior spec sends dummy messages and checks they arrive
--------------------------------------------------------------------------
-
-\* A communication step consists of either sending to receiving a message
-Comm(self) == \/ /\ msgCounter <= MAX_MSG
-                 /\ \E m \in Msg, p \in Peer: Send(m, self, p)
-                 /\ msgCounter' = msgCounter + 1
-              \/ \E p \in Peer: /\ HasMsg(self, p)\*Len(commChannels[p, self].in) > 0
-                                /\ Receive(self, p)
-
-\* The next-state relation: send or receive a message, or stutter if done communicating
-NWNext == \/ (\E self \in Peer: Comm(self))
-          \/ (* Disjunct to prevent deadlock on termination *)
-             /\ msgCounter > MAX_MSG
-             /\ \A p1 \in Peer, p2 \in Peer: Len(commChannels[p1, p2].in) = 0
-             /\ UNCHANGED netvars
-
-\* The test-spec - send and receive messages until MAX_MSG messages have been exchanged              
-NWSpec == /\ NWInit /\ [][NWNext]_netvars
-          /\ \A self \in Peer : WF_netvars(Comm(self))
+LOCAL Liveness == msgCounter > MAX_MSG ~> /\ \A p1 \in Peer, p2 \in Peer: Len(commChannels[p1, p2].in) = 0
+                                          /\ CountMsgs[Peer] = MAX_MSG  
 
 ============================================================
