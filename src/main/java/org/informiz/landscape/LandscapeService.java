@@ -10,23 +10,50 @@ import java.util.Map;
 
 import org.informiz.executor.CypherExecutor;
 import org.informiz.executor.JdbcCypherExecutor;
+import org.informiz.util.LandscapeRequest;
+import org.informiz.util.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.QueueingConsumer;
 
 /**
  * @author Nira Amit
  */
 public class LandscapeService {
 
-    private final CypherExecutor cypher;
+	static Logger logger = LoggerFactory.getLogger(LandscapeService.class);
 
-    public LandscapeService(String uri) {
-    	this(uri, null, null);
+    private final CypherExecutor cypher;
+    Connection connection = null;
+    Channel channel = null;
+
+    public LandscapeService(String hostname) throws Exception {
+    	this(hostname, null, null);
     }
 
-    public LandscapeService(String uri, String user, String pass) {
-        cypher = createCypherExecutor(uri,user,pass);
+    public LandscapeService(String hostname, String user, String pass) throws Exception {
+    	cypher = createCypherExecutor(Util.getNeo4jUrl(),user,pass);
+    	ConnectionFactory factory = new ConnectionFactory();
+    	factory.setHost(hostname);
+
+    	connection = factory.newConnection();
+    	channel = connection.createChannel();
+
+    	channel.queueDeclare(Util.LANDSCAPE_QUEUE_NAME, false, false, false, null);
+
+    	channel.basicQos(1);
+
+    	QueueingConsumer consumer = new QueueingConsumer(channel);
+    	channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
     }
 
     private CypherExecutor createCypherExecutor(String uri, String user, String pass) {
@@ -35,6 +62,57 @@ public class LandscapeService {
         }
         return new JdbcCypherExecutor(uri);
     }
+    
+    public void process() {
+    	Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		logger.info("Landscape service ready");
+		QueueingConsumer consumer = new QueueingConsumer(channel);
+    	try {
+    		channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
+    		while (true) {
+    			Map<String, Object> response = null;
+
+    			QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+
+    			BasicProperties props = delivery.getProperties();
+    			BasicProperties replyProps = new BasicProperties
+    					.Builder()
+    					.correlationId(props.getCorrelationId())
+    					.build();
+
+    			try {
+    				String message = new String(delivery.getBody(),"UTF-8");
+    				LandscapeRequest req = gson.fromJson(message, LandscapeRequest.class);
+
+    				response = graph(req.getInformiId(), req.getLimit());
+    			}
+    			catch (Exception e){
+    				logger.error("Error while attempting to retrieve landscape: " + e.getMessage(), e);
+    				response = map("errors", "Failed to retrieve landscape: " + e.getMessage());
+    			}
+    			finally {  
+    				String asJson = gson.toJson(response);
+    				channel.basicPublish( "", props.getReplyTo(), replyProps, asJson.getBytes("UTF-8"));
+    				channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+    			}
+    		}
+    	}
+    	catch  (Exception e) {
+    		e.printStackTrace();
+    	}
+    	finally {
+    		close();
+    	}      		      
+    }
+
+	public void close() {
+		if (connection != null) {
+			try {
+				connection.close();
+			}
+			catch (Exception ignore) {}
+		}
+	}
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> graph(int informiId, int limit) {
@@ -71,6 +149,31 @@ public class LandscapeService {
 			if (id == rootId) {
 				informi.put("root", true);
 			}
+		}
+	}
+	
+	public static void main(String[] args) {
+		LandscapeService service = null;
+		String username = null;
+		String password = null;
+		String hostname = "localhost";
+		if (args.length > 0) {
+			username = args[0];
+		}
+		if (args.length > 1) {
+			password = args[1];
+		}
+		if (args.length > 2) {
+			hostname = args[2];
+		}
+        try {
+        	service = new LandscapeService(hostname, username, password);
+			service.process();
+		} catch (Exception e) {
+			logger.error("Exception while trying to initialize landscape endpoint: " + e.getMessage(), e);
+    		if (service != null) {
+				service.close();
+    		}
 		}
 	}
 }

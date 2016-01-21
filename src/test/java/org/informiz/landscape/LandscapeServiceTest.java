@@ -32,7 +32,13 @@ public final class LandscapeServiceTest {
 			      result = Arrays.asList(row).iterator();
 	   }};
 
-		LandscapeService service = new LandscapeService("dummy");
+		LandscapeService service = null;
+		try {
+			service = new LandscapeService("localhost");
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail("Exception while trying to init service: " + e.getMessage());
+		}
 		Map<String, Object> result = service.graph(123, 10);
 
 		Map<String, Object> graph = (Map<String, Object>)result.get("graph");

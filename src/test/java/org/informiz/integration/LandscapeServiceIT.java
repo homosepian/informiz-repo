@@ -52,8 +52,13 @@ public final class LandscapeServiceIT {
 		port(Util.getWebPort());
         String username = System.getenv("NEO4J_USER");
         String password = System.getenv("NEO4J_PASSWORD");
-        service = new LandscapeService(Util.getNeo4jUrl(), username, password);
-        new LandscapeRoutes(service).init();
+        try {
+			new LandscapeService(Util.getNeo4jUrl(), username, password).process();
+	        new LandscapeRoutes("localhost").init();
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail("Exception while trying to init services: " + e.getMessage());
+		}
 	}
 	
 	@After
