@@ -35,6 +35,7 @@ public class LandscapeService {
     private final CypherExecutor cypher;
     Connection connection = null;
     Channel channel = null;
+    QueueingConsumer consumer = null;
 
     public LandscapeService(String hostname) throws Exception {
     	this(hostname, null, null);
@@ -52,8 +53,8 @@ public class LandscapeService {
 
     	channel.basicQos(1);
 
-    	QueueingConsumer consumer = new QueueingConsumer(channel);
-    	channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
+    	consumer = new QueueingConsumer(channel);
+		channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
     }
 
     private CypherExecutor createCypherExecutor(String uri, String user, String pass) {
@@ -66,9 +67,7 @@ public class LandscapeService {
     public void process() {
     	Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		logger.info("Landscape service ready");
-		QueueingConsumer consumer = new QueueingConsumer(channel);
     	try {
-    		channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
     		while (true) {
     			Map<String, Object> response = null;
 
