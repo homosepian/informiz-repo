@@ -16,11 +16,16 @@ Get a landscape-graph of connections between informiz. REST API exposed with [Sp
 ## Installation
 Start your local Neo4j Server [(Download & Install)](http://neo4j.com/download). Import the data using the commands in the file [data.sql](/src/test/resources/data.sql).
 
-Start the application with:
+Build the application with:
 ```bash
-mvn compile exec:java -Dexec.args="neo4j_user neo4j_password"
+mvn package
+```
+Run the application with:
+```bash
+java -jar lands-service-1.0-SNAPSHOT.jar "neo4j_user" "neo4j_password" "localhost" &
+/path/to/java8/bin/java -jar lands-endpoint-1.0-SNAPSHOT.jar "localhost" &
 ```
 Where neo4j_user and neo4j_password are your Neo4j credentials (application will fail without credentials).
-Your REST serive will be available at http://localhost:8080/graph?informi=123
+Your REST serive will be available at http://localhost:8080/graph?informi=xyz
 
 

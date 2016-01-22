@@ -70,6 +70,7 @@ public class LandscapeService {
     	try {
     		while (true) {
     			Map<String, Object> response = null;
+    			String asJson = null;
 
     			QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 
@@ -84,13 +85,13 @@ public class LandscapeService {
     				LandscapeRequest req = gson.fromJson(message, LandscapeRequest.class);
 
     				response = graph(req.getInformiId(), req.getLimit());
+    				asJson = gson.toJson(response);
     			}
     			catch (Exception e){
     				logger.error("Error while attempting to retrieve landscape: " + e.getMessage(), e);
-    				response = map("errors", "Failed to retrieve landscape: " + e.getMessage());
+    				asJson = Util.createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
     			}
     			finally {  
-    				String asJson = gson.toJson(response);
     				channel.basicPublish( "", props.getReplyTo(), replyProps, asJson.getBytes("UTF-8"));
     				channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
     			}
@@ -169,7 +170,7 @@ public class LandscapeService {
         	service = new LandscapeService(hostname, username, password);
 			service.process();
 		} catch (Exception e) {
-			logger.error("Exception while trying to initialize landscape endpoint: " + e.getMessage(), e);
+			logger.error("Exception while trying to initialize landscape service: " + e.getMessage(), e);
     		if (service != null) {
 				service.close();
     		}

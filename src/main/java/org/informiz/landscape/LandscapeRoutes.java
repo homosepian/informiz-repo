@@ -1,6 +1,5 @@
 package org.informiz.landscape;
 
-import static org.neo4j.helpers.collection.MapUtil.map;
 import static spark.Spark.get;
 import static spark.Spark.port;
 
@@ -63,7 +62,8 @@ public class LandscapeRoutes implements SparkApplication {
                 try {
 					informi = Integer.valueOf(request.queryParams("informi"));
 				} catch (NumberFormatException e) {
-            		throw new IllegalArgumentException("Invalid informi id " + request.queryParams("informi"));
+					logger.error("Invalid informi id " + request.queryParams("informi"));
+					return Util.createJsonErrorResp("Invalid informi id"); // don't return the param in case it's malicious
 				}
                 int limit = DEFAULT_SIZE_LIMIT;
                 if (request.queryParams("limit") != null) {
@@ -137,7 +137,7 @@ public class LandscapeRoutes implements SparkApplication {
 			}
 		} catch (Exception e) {
 			logger.error("Error while attempting to retrieve a " + maxSize + " node landscape for informi " + informiId + " : " + e.getMessage(), e);
-			response = gson.toJson(map("errors", "Failed to retrieve landscape: " + e.getMessage()));
+			response = Util.createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
 		}
 
 		return response;
