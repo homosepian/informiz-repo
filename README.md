@@ -14,18 +14,11 @@ Get a landscape-graph of connections between informiz. REST API exposed with [Sp
 ![alt text](http://informiz.org/wp-content/uploads/2015/10/graph.png)
 
 ## Installation
-Start your local Neo4j Server [(Download & Install)](http://neo4j.com/download). Import the data using the commands in the file [data.sql](/src/test/resources/data.sql).
-
-Build the application with:
-```bash
-mvn package
-```
-Run the application with:
-```bash
-java -jar lands-service-1.0-SNAPSHOT.jar "neo4j_user" "neo4j_password" "localhost" &
-/path/to/java8/bin/java -jar lands-endpoint-1.0-SNAPSHOT.jar "localhost" &
-```
-Where neo4j_user and neo4j_password are your Neo4j credentials (application will fail without credentials).
-Your REST serive will be available at http://localhost:8080/graph?informi=xyz
+1. You need [Neo4j](http://neo4j.com/download) and RabbitMQ running on localhost to run this application.
+2. Start your local Neo4j Server. Import the data using the commands in the file [data.sql](/src/test/resources/data.sql).
+3. Change the Neo4j credentials in the Dockerfile under docker/lands-rest/ to your own.
+4. Use the scripts under docker/lands-rest/ and docker/lands-ser/ to build and run the service and endpoint.
+* Your REST serive will be available at http://localhost:8080/graph?informi=xyz
+5. Use the stop.sh scripts in the same directories to stop the service and endpoint.
 
 

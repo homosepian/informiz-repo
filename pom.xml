@@ -144,7 +144,7 @@
 				<version>1.4.4</version>
 				<executions>
 					<execution>
-						<id>build-first</id>
+						<id>build-service</id>
 						<configuration>
 							<mainClass>org.informiz.landscape.LandscapeService</mainClass>
 							<attachToBuild>true</attachToBuild>
@@ -156,7 +156,7 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>build-second</id>
+						<id>build-endpoint</id>
 						<configuration>
 							<mainClass>org.informiz.landscape.LandscapeRoutes</mainClass>
 							<attachToBuild>true</attachToBuild>
@@ -170,6 +170,50 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.7</version>
+				<executions>
+					<execution>
+						<id>copy-service</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${basedir}/docker/lands-ser/build</outputDirectory>
+							<resources>
+								<resource>
+									<directory>target</directory>
+									<filtering>false</filtering>
+									<includes>
+										<include>lands-service-${version}.jar</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>copy-endpoint</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${basedir}/docker/lands-rest/build</outputDirectory>
+							<resources>
+								<resource>
+									<directory>target</directory>
+									<filtering>false</filtering>
+									<includes>
+										<include>lands-endpoint-${version}.jar</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+  			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.19</version>
 				<configuration>
