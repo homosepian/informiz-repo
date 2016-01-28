@@ -4,7 +4,6 @@ import static org.neo4j.helpers.collection.MapUtil.map;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +11,7 @@ import org.informiz.executor.CypherExecutor;
 import org.informiz.executor.JdbcCypherExecutor;
 import org.informiz.util.LandscapeRequest;
 import org.informiz.util.Util;
+import org.neo4j.graphdb.ResourceIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +31,11 @@ import com.rabbitmq.client.QueueingConsumer;
 public class LandscapeService {
 
 	static Logger logger = LoggerFactory.getLogger(LandscapeService.class);
+
+	private static final String LANDSCAPE_QUERY = "MATCH (informi:Informi)-[r]->(other:Informi) "
+	+ "WHERE informi.id={1} OR other.id={1} "
+	+ "RETURN informi, r, other "
+	+ "LIMIT {2}";
 
     private final CypherExecutor cypher;
     Connection connection = null;
@@ -114,30 +119,28 @@ public class LandscapeService {
 		}
 	}
 
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> graph(int informiId, int limit) {
-        Iterator<Map<String,Object>> result = cypher.query(
-        		"MATCH (informi:Informi)-[r]->(other:Informi) "
-        		+ "WHERE informi.id={1} OR other.id={1} "
-        		+ "RETURN informi, r, other "
-        		+ "LIMIT {2}", map("1",informiId, "2",limit));
-        List<Map<String, Object>> nodes = Lists.newArrayList();
-        List <Map<String, Object>> rels = Lists.newArrayList();
-        List<Integer> ids = new ArrayList<Integer>();
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> graph(int informiId, int limit) {
+		try(ResourceIterator<Map<String,Object>> result = cypher.query(
+				LANDSCAPE_QUERY, map("1",informiId, "2",limit))) {
+			List<Map<String, Object>> nodes = Lists.newArrayList();
+			List <Map<String, Object>> rels = Lists.newArrayList();
+			List<Integer> ids = new ArrayList<Integer>();
 
-        while (result.hasNext()) {
-            Map<String, Object> row = result.next();
-            Map<String, Object> source = (Map<String, Object>)row.get("informi");
-			addNode(source, informiId, ids, nodes);
-            Map<String, Object> target = (Map<String, Object>)row.get("other");
-			addNode(target, informiId, ids, nodes);
-            Map<String, Object> rel = (Map<String, Object>)row.get("r");
-            rels.add(map("source", source.get("id"), "target", target.get("id"), 
-            		"caption", rel.get("description"), "type", "Relation"));
-        }
+			while (result.hasNext()) {
+				Map<String, Object> row = result.next();
+				Map<String, Object> source = (Map<String, Object>)row.get("informi");
+				addNode(source, informiId, ids, nodes);
+				Map<String, Object> target = (Map<String, Object>)row.get("other");
+				addNode(target, informiId, ids, nodes);
+				Map<String, Object> rel = (Map<String, Object>)row.get("r");
+				rels.add(map("source", source.get("id"), "target", target.get("id"), 
+						"caption", rel.get("description"), "type", "Relation"));
+			}
 
-        return map("graph", map("nodes", nodes, "edges", rels), "labels", Arrays.asList("Informi"), "errors", "");
-    }
+			return map("graph", map("nodes", nodes, "edges", rels), "labels", Arrays.asList("Informi"), "errors", "");
+		}
+	}
 
 	private void addNode(Map<String, Object> node, int rootId, List<Integer> ids, List<Map<String, Object>> nodes) {
 		Map<String, Object> informi = Maps.newHashMap(node);

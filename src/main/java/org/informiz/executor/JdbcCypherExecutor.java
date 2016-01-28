@@ -1,14 +1,30 @@
 package org.informiz.executor;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Properties;
+
+import org.neo4j.graphdb.ResourceIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Nira Amit
  */
 public class JdbcCypherExecutor implements CypherExecutor {
 
-    private final Connection conn;
+	static Logger logger = LoggerFactory.getLogger(JdbcCypherExecutor.class);
+
+	private final Connection conn;
 
     public JdbcCypherExecutor(String url) {
         this(url,null,null);
@@ -26,12 +42,12 @@ public class JdbcCypherExecutor implements CypherExecutor {
     }
 
     @Override
-    public Iterator<Map<String, Object>> query(String query, Map<String, Object> params) {
+    public ResourceIterator<Map<String, Object>> query(String query, Map<String, Object> params) {
         try {
             final PreparedStatement statement = conn.prepareStatement(query);
             setParameters(statement, params);
             final ResultSet result = statement.executeQuery();
-            return new Iterator<Map<String, Object>>() {
+            return new ResourceIterator<Map<String, Object>>() {
 
                 boolean hasNext = result.next();
                 public List<String> columns;
@@ -71,6 +87,22 @@ public class JdbcCypherExecutor implements CypherExecutor {
                 @Override
                 public void remove() {
                 }
+
+				@Override
+				public void close() {
+                    if (result != null) try {
+						result.close();
+					} catch (SQLException e) {
+						// best effort
+						logger.warn("Exception while closing query result-set", e);
+					}
+                    if (statement != null) try {
+						statement.close();
+					} catch (SQLException e) {
+						// best effort
+						logger.warn("Exception while closing prepared-statement", e);
+					}
+				}
             };
         } catch (SQLException e) {
             throw new RuntimeException(e);
