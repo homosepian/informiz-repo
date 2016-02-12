@@ -11,7 +11,7 @@ CONSTANT ENTITY_ID
 CONSTANT ENTITY_VAL
 
 \* Plumtree and Network constants
-CONSTANTS CreateGossipMsg(_), ProcessGossip(_,_), Gossip, IHave, Graft, Prune, PeerSamplingService, Msg, MAX_MSG
+CONSTANTS GossipMsgBody(_), ProcessGossip(_,_), Gossip, IHave, Graft, Prune, PeerSamplingService, Msg, MAX_MSG
 
 \* Plumtree and Network variables
 VARIABLES msgCounter, commChannels
@@ -85,14 +85,10 @@ CreateEntity(peer, eid, v) == [id     |-> eid,
                                           THEN updateVV(replica[peer][eid].vclock, (peer :> msgCounter)) 
                                           ELSE (peer :> msgCounter)]
 
-\* The CreateGossipMsg implementation
-CreateUpdate(peer) == \E eid \in ENTITY_ID, v \in ENTITY_VAL:
-                        message' = [message EXCEPT ![peer] = 
-                            [mtype |-> Gossip, 
-                             mid   |-> msgCounter, 
-                             mbody |-> CreateEntity(peer, eid, v),
-                             msrc  |-> peer]]
-
+\* The GossipMsgBody implementation
+CreateUpdate(peer) == { CreateEntity(peer, eid, v)  
+                         : eid \in ENTITY_ID, v \in ENTITY_VAL }                             
+                                           
 \* The refinement mapping of the Plumtree protocol
 PT == INSTANCE Plumtree WITH Peer <- Repository, MBody <- Entity
 
@@ -136,3 +132,5 @@ TypeSafe == /\ PT!TypeOk
 ReachRepoConsistency == (msgCounter > MAX_MSG) ~> ConsistentRepo 
 
 ===============================================================================
+
+

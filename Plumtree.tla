@@ -16,6 +16,14 @@ CONSTANTS Gossip, IHave, Graft, Prune
 \* Message Body - the gossip being broadcasted
 CONSTANT MBody
 
+\* An abstraction of the peer sampling service, provides the initial set of eager peers 
+\* for the protocol.          
+CONSTANT PeerSamplingService          
+
+\* The set of possible message bodies for gossip-messages with origin <peer>
+\* For spec testing this is set to the MBody constant for all peers 
+CONSTANT GossipMsgBody(_)
+                      
 \* Unique ids for the gossip messages
 MID == 1..MAX_MSG 
 \* Set of possible messages. This serves as the Network's Msg parameter
@@ -24,21 +32,12 @@ ProtoMsg == [msrc: Peer, mtype: {IHave, Graft}, mid: MID]
             [msrc: Peer, mtype: {Gossip}, mid: MID, mbody: MBody]
             \cup
             [msrc: Peer, mtype: {Prune}]
-
-\* An abstraction of the peer sampling service, provides the initial set of eager peers 
-\* for the protocol.          
-CONSTANT PeerSamplingService          
-
-\* An abstraction of gossip generation, which creates some gossip message with origin <peer> and 
-\* assignes it to message[peer].
-\* For spec testing this is set to the TestCreateGossip(peer) operator 
-CONSTANT CreateGossipMsg(_)
                       
 \* An abstraction of gossip processing at the application level.
 \* For spec testing this is set to TRUE 
 CONSTANT ProcessGossip(_,_)
 ASSUME \A p \in Peer, m \in ProtoMsg: ProcessGossip(p, m) \in BOOLEAN 
-                      
+
 \* The set of peers for eager message pushing
 \* This is a mapping between a peer and a set of other peers
 VARIABLE eagerPushPeers 
@@ -75,16 +74,15 @@ Nil == CHOOSE x \in Nat: x \notin Peer
 allvars == <<eagerPushPeers, lazyPushPeers, receivedUpdates, missingUpdateSrcs, timers, 
              commChannels, msgCounter, pc, recipient, message>>
  
-\* For spec testing - generate a gossip message
-TestCreateGossip(peer) == \E b \in MBody:
-                        message' = [message EXCEPT ![peer] = 
-                            [mtype |-> Gossip, 
-                             mid   |-> msgCounter, 
-                             mbody |-> b,
-                             msrc  |-> peer]]
-
 \*************************** Utility Operators **************************
 -------------------------------------------------------------------------
+
+\* The set of possible gossip messages
+GossipMsg(peer) == { [mtype |-> Gossip, 
+                      mid   |-> msgCounter, 
+                      mbody |-> body,
+                      msrc  |-> peer]
+                    : body \in GossipMsgBody(peer) }
 
 \* Send a message to one of multiple receipients - move to the next state when there are no more receipients
 SendMsg(peer, nextState) == 
@@ -237,8 +235,8 @@ Timeout(peer) ==
 
 \* Receive a message and process it
 ReceiveMessage(peer) == 
-    \E p \in Peer: /\ Len(commChannels[p, peer].in) > 0 
-                   /\ message' = [message EXCEPT ![peer] = Head(commChannels[p, peer].in)]
+    \E p \in Peer: /\ HasMsg(peer, p) 
+                   /\ message' = [message EXCEPT ![peer] = GetMsg(peer, p)]
                    /\ Receive(peer, p)
                    /\ pc' = [pc EXCEPT ![peer] = "ProcessMessage"] 
                    /\ UNCHANGED <<eagerPushPeers, lazyPushPeers, receivedUpdates, missingUpdateSrcs, timers, recipient, msgCounter>>
@@ -247,7 +245,7 @@ ReceiveMessage(peer) ==
 \* For simplicity, the gossip message is created and assigned to message[peer], and then sent over the network to localhost 
 GenerateGossip(peer) == 
     /\ msgCounter <= MAX_MSG
-    /\ CreateGossipMsg(peer)  \* sets message[peer] to the new gossip message
+    /\ message' \in { [message EXCEPT ![peer] = msg] : msg \in GossipMsg(peer) }
     /\ Send( message'[peer], peer, peer )  \* gossip is sent to localhost
     /\ msgCounter' = msgCounter + 1
     /\ UNCHANGED <<pc, receivedUpdates, eagerPushPeers, lazyPushPeers, missingUpdateSrcs, timers, recipient>>
