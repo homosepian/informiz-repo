@@ -3,12 +3,14 @@ package org.informiz.landscape;
 import static org.neo4j.helpers.collection.MapUtil.map;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.informiz.executor.JdbcCypherExecutor;
 import org.junit.Assert;
 import org.junit.Test;
+import org.neo4j.graphdb.ResourceIterator;
 
 import mockit.Expectations;
 import mockit.Mocked;
@@ -23,13 +25,33 @@ public final class LandscapeServiceTest {
 
 		final Map<String, Object> row = map("informi", map("id", 123), "other", map("id", 456),
 				"r", map("description", "connected"));
+		
+		final ResourceIterator<Map<String, Object>> res = new ResourceIterator<Map<String, Object>>() {
+
+			Iterator<Map<String, Object>> inner = Arrays.asList(row).iterator();
+			@Override
+			public boolean hasNext() {
+				return inner.hasNext();
+			}
+
+			@Override
+			public Map<String, Object> next() {
+				return inner.next();
+			}
+
+			@Override
+			public void close() {
+				// no-op
+				
+			}			
+		};
 
 		new Expectations() {{
 			new JdbcCypherExecutor(anyString);
 
 			// query will return one row
 			cypher.query(anyString, map("1",123, "2",10));
-			      result = Arrays.asList(row).iterator();
+			      result = res;
 	   }};
 
 		LandscapeService service = null;
