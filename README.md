@@ -13,10 +13,13 @@ You can see the plugin in action on the [informiz.org](http://informiz.org/infor
 Get a landscape-graph of connections between informiz. REST API exposed with [Spark-Java](http://www.sparkjava.com/).
 ![alt text](http://informiz.org/wp-content/uploads/2015/10/graph.png)
 
+## Building the project
+Run mvn pre-integration-test to have the jar files built and copied to the docker build directories.
+
 ## Installation
 1. You need [Neo4j](http://neo4j.com/download) and RabbitMQ running on localhost to run this application.
 2. Start your local Neo4j Server. Import the data using the commands in the file [data.sql](/src/test/resources/data.sql).
-3. Change the Neo4j credentials in the Dockerfile under docker/lands-rest/ to your own.
+3. Change the Neo4j credentials in the neo4j.properties under docker/lands-ser/ to your own.
 4. Use the scripts under docker/lands-rest/ and docker/lands-ser/ to build and run the service and endpoint.
 * Your REST serive will be available at http://localhost:8080/graph?informi=xyz
 5. Use the stop.sh scripts in the same directories to stop the service and endpoint.
