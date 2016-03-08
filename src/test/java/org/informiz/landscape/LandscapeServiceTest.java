@@ -2,15 +2,17 @@ package org.informiz.landscape;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.informiz.executor.JdbcCypherExecutor;
+import org.informiz.executor.QueryResultIterator;
 import org.junit.Assert;
 import org.junit.Test;
-import org.neo4j.graphdb.ResourceIterator;
 
 import mockit.Expectations;
 import mockit.Mocked;
@@ -21,12 +23,12 @@ public final class LandscapeServiceTest {
 	
 	@SuppressWarnings("unchecked")
 	@Test
-	public void testGraphCreation() {
-
+	public void testGraphCreation() throws SQLException {
+		
 		final Map<String, Object> row = map("informi", map("id", 123), "other", map("id", 456),
 				"r", map("description", "connected"));
 		
-		final ResourceIterator<Map<String, Object>> res = new ResourceIterator<Map<String, Object>>() {
+		final QueryResultIterator res = new QueryResultIterator(null, null) {
 
 			Iterator<Map<String, Object>> inner = Arrays.asList(row).iterator();
 			@Override

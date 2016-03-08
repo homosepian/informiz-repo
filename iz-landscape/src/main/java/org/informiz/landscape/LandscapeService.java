@@ -9,9 +9,9 @@ import java.util.Map;
 
 import org.informiz.executor.CypherExecutor;
 import org.informiz.executor.JdbcCypherExecutor;
+import org.informiz.executor.QueryResultIterator;
 import org.informiz.util.LandscapeRequest;
 import org.informiz.util.Util;
-import org.neo4j.graphdb.ResourceIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,10 +121,10 @@ public class LandscapeService {
 
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> graph(int informiId, int limit) {
-		try(ResourceIterator<Map<String,Object>> result = cypher.query(
+		try(QueryResultIterator result = cypher.query(
 				LANDSCAPE_QUERY, map("1",informiId, "2",limit))) {
 			List<Map<String, Object>> nodes = Lists.newArrayList();
-			List <Map<String, Object>> rels = Lists.newArrayList();
+			List<Map<String, Object>> rels = Lists.newArrayList();
 			List<Integer> ids = new ArrayList<Integer>();
 
 			while (result.hasNext()) {
