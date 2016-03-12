@@ -53,4 +53,14 @@ public class JdbcCypherExecutor implements CypherExecutor {
             statement.setObject(index, entry.getValue());
         }
     }
+
+	@Override
+	public void shutdown() {
+		try {
+			conn.close();
+		} catch (SQLException e) {
+			logger.warn("Failed to close connection", e);
+		}
+		
+	}
 }

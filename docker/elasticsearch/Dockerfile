@@ -37,10 +37,16 @@ RUN set -ex \
 		./logs \
 		./config \
 		./config/scripts \
+		./plugins \
+		./plugins/dbq \
 	; do \
 		mkdir -p "$path"; \
 		chown -R elasticsearch:elasticsearch "$path"; \
 	done
+
+# TODO: better way to install the plugin?
+RUN wget -O ./plugins/dbq/dbq.jar http://central.maven.org/maven2/org/elasticsearch/plugin/delete-by-query/2.0.0/delete-by-query-2.0.0.jar
+COPY plugin-descriptor.properties ./plugins/dbq/
 
 COPY config ./config
 

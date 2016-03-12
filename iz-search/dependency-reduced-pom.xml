@@ -23,8 +23,35 @@
             </goals>
             <configuration>
               <transformers>
-                <transformer />
+                <transformer>
+                  <mainClass>org.informiz.export.InformiExportManager</mainClass>
+                </transformer>
               </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.7</version>
+        <executions>
+          <execution>
+            <id>copy-jar</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${basedir}/../docker/iz-search/build</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>target</directory>
+                  <filtering>false</filtering>
+                  <includes>
+                    <include>iz-search-${project.version}.jar</include>
+                  </includes>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>

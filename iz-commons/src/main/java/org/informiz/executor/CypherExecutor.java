@@ -9,4 +9,6 @@ import org.neo4j.graphdb.ResourceIterator;
  */
 public interface CypherExecutor {
 	QueryResultIterator query(String statement, Map<String,Object> params);
+	
+	void shutdown();
 }

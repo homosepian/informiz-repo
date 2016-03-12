@@ -27,7 +27,7 @@ public class InformiExportManager {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void graph(int informiId, int limit) {
+	public void exportInformiz() {
 		try(QueryResultIterator result = cypher.query(INFORMIZ_QUERY, new HashMap<String, Object>())) {
 			List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
 
@@ -40,10 +40,16 @@ public class InformiExportManager {
 		}
 	}
 	
+	public void close() {
+		eventExporter.close();
+		cypher.shutdown();		
+	}
+
 	public static void main(String[] args) {
 		// TODO - for testing, to remove, read user\pass from environment variable
 		InformiExportManager exporter = new InformiExportManager("neo4j", "neo4j", "localhost", 44444);
-		exporter.graph(1, 1);
+		exporter.exportInformiz();
+		exporter.close();
 	}
 
 }
