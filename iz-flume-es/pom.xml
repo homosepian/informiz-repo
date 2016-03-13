@@ -8,8 +8,8 @@
 	</parent>
 	<artifactId>iz-flume-es</artifactId>
 	<packaging>jar</packaging>
-	<name>Informiz Search</name>
-	<description>Indexing for elasticsearch sink</description>
+	<name>Informiz Flume ES sink</name>
+	<description>Elasticsearch sink for Flume streaming</description>
 	<url>http://github.com/iz-repository</url>
 
 	<dependencies>

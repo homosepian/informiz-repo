@@ -2,6 +2,7 @@ package org.informiz.flume;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import org.apache.flume.FlumeException;
 import org.apache.flume.api.RpcClient;
 import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.event.EventBuilder;
+import org.elasticsearch.index.mapper.internal.IdFieldMapper;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder; 
@@ -21,6 +23,9 @@ public class GraphEventExporter {
 	public static final int ATTEMPT_DELAY = 500; 
 	public static final int MAX_ATTEMPS = 3; 
 
+	// thread-safe
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+	
 	private RpcClient client;
 	private String hostname;
 	private int port;
@@ -33,12 +38,10 @@ public class GraphEventExporter {
 	}
 
 	public void sendNodesToFlume(List<Map<String, Object>> nodes) {
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<Event> batch = new ArrayList<Event>();
 		int size = 0;
 		for (Map<String, Object> node: nodes) {
-			Event event = EventBuilder.withBody(gson.toJson(node), Charset.forName("UTF-8"));
-			batch.add(event);
+			batch.add(createEvent(node));
 			size++;
 			if (size == BATCH_SIZE) {
 				sendBatch(batch);
@@ -47,6 +50,14 @@ public class GraphEventExporter {
 			}
 		}
 		if (! batch.isEmpty()) sendBatch(batch);
+	}
+
+	private Event createEvent(Map<String, Object> node) {
+		Event event = EventBuilder.withBody(GSON.toJson(node), Charset.forName("UTF-8"));
+		HashMap<String, String> headers = new HashMap<String, String>();
+		headers.put(IdFieldMapper.NAME, ((Integer)node.get("id")).toString());
+		event.setHeaders(headers);
+		return event;
 	}
 
 	private void sendBatch(List<Event> batch) {

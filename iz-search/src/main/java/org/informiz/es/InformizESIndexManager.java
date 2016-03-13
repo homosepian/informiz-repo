@@ -50,9 +50,6 @@ public class InformizESIndexManager {
 		try (TransportClient client = TransportClient.builder().settings(settings).build()) {
 			for (HostProps host : hosts) {
 				try {
-//					byte[] ip = new byte[]{(byte)172,(byte)17,(byte)0,(byte)11};
-//					client.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByAddress(ip), host.port));
-//					client.addTransportAddress(new InetSocketTransportAddress(InetAddress.getLocalHost(), 9300));
 					client.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host.hostname), host.port));
 				} catch (UnknownHostException e) {
 					logger.error("Failed to establish transport address", e);
@@ -66,15 +63,6 @@ public class InformizESIndexManager {
 	}
 
 	private static void initIndex(Client client) {
-		
-/*		Node node =
-			    nodeBuilder()
-			        .settings(Settings.settingsBuilder().put("http.enabled", false)
-			        		.put("path.home", "/usr/share/elasticsearch"))
-			        .client(true)
-			    .node();
-		client = node.client();
-*/
 		
 		IndicesExistsRequest request = new IndicesExistsRequest(INFORMIZ_INDEX);
 		IndicesExistsResponse response = client.admin().indices().exists(request).actionGet();
