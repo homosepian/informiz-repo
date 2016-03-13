@@ -13,11 +13,14 @@ import org.apache.flume.api.RpcClient;
 import org.apache.flume.api.RpcClientFactory;
 import org.apache.flume.event.EventBuilder;
 import org.elasticsearch.index.mapper.internal.IdFieldMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder; 
 
 public class GraphEventExporter {
+	static Logger logger = LoggerFactory.getLogger(GraphEventExporter.class);
 
 	public static final int BATCH_SIZE = 100; 
 	public static final int ATTEMPT_DELAY = 500; 
@@ -95,7 +98,7 @@ public class GraphEventExporter {
 			try {
 				client.close();
 			} catch (Exception e) {
-				// TODO log
+				logger.warn("Exception while trying to close Flume client", e);
 			}
 		}
 		client = null;

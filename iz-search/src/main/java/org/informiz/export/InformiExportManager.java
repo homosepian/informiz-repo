@@ -10,9 +10,11 @@ import org.informiz.executor.CypherExecutor;
 import org.informiz.executor.JdbcCypherExecutor;
 import org.informiz.executor.QueryResultIterator;
 import org.informiz.flume.GraphEventExporter;
-//import org.informiz.util.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InformiExportManager {
+	static Logger logger = LoggerFactory.getLogger(InformiExportManager.class);
 	
 	private static final String INFORMIZ_QUERY = "MATCH (node:Informi) RETURN node";
 
@@ -20,8 +22,8 @@ public class InformiExportManager {
 	private final GraphEventExporter eventExporter;
 	
 	public InformiExportManager(String graphUser, String graphPass, String flumeHost, int flumePort) {
-		// TODO why maven doesn't find package org.informiz.util ??
-		cypher = new JdbcCypherExecutor(/*Util.getNeo4jUrl()*/"http://localhost:7474", graphUser, graphPass);
+		// TODO get Neo4j url from input/properties/environment
+		cypher = new JdbcCypherExecutor("http://localhost:7474", graphUser, graphPass);
 		eventExporter = new GraphEventExporter(flumeHost, flumePort);
 		InformizESIndexManager.init();
 	}
@@ -46,10 +48,14 @@ public class InformiExportManager {
 	}
 
 	public static void main(String[] args) {
-		// TODO - for testing, to remove, read user\pass from environment variable
-		InformiExportManager exporter = new InformiExportManager("neo4j", "neo4j", "localhost", 44444);
-		exporter.exportInformiz();
-		exporter.close();
+		InformiExportManager exporter = null;
+		try {
+			// TODO - for testing, to remove, read user\pass from environment variable
+			exporter = new InformiExportManager("neo4j", "neo4j", "localhost", 44444);
+			exporter.exportInformiz();
+		} finally {
+			if (exporter != null) exporter.close();
+		}
 	}
 
 }
