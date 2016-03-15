@@ -95,6 +95,7 @@ public class InformizESIndexManager {
 					.field("type", "string")
 					.endObject()
 
+					// TODO do i want this indexed?
 					.startObject("media_source")
 					.field("type", "string")
 					.field("index", "not_analyzed")
