@@ -141,7 +141,7 @@
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${basedir}/docker/lands-ser/build</outputDirectory>
+							<outputDirectory>${basedir}/../docker/lands-ser/build</outputDirectory>
 							<resources>
 								<resource>
 									<directory>target</directory>
@@ -160,7 +160,7 @@
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${basedir}/docker/lands-rest/build</outputDirectory>
+							<outputDirectory>${basedir}/../docker/lands-rest/build</outputDirectory>
 							<resources>
 								<resource>
 									<directory>target</directory>

@@ -21,7 +21,7 @@ public class JdbcCypherExecutor implements CypherExecutor {
 	private final Connection conn;
 
     public JdbcCypherExecutor(String url) {
-        this(url,null,null);
+        this(url,"","");
     }
     
     public JdbcCypherExecutor(String url,String username, String password) {
@@ -51,6 +51,15 @@ public class JdbcCypherExecutor implements CypherExecutor {
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             int index = Integer.parseInt(entry.getKey());
             statement.setObject(index, entry.getValue());
+        }
+    }
+    
+    @Override
+    public void update(String statement) {
+        try {
+        	conn.prepareStatement(statement).executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 

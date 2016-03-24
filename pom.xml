@@ -17,6 +17,7 @@
 	<modules>
 		<module>iz-commons</module>
 		<module>iz-landscape</module>
+		<module>iz-graph</module>
 		<module>iz-search</module>
 		<module>iz-flume-es</module>
 	</modules>
