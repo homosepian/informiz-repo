@@ -15,11 +15,12 @@ The application exposes a [Spark-Java](http://www.sparkjava.com/) REST API for r
 
 ## Building the project
 Run mvn clean install -DskipITs to have the jar files built and copied to the docker build directories.
+
 Due to a compatability issue between Flume and Elasticsearch, you will need to manually build [ElasticsearchSink2](https://github.com/lucidfrontier45/ElasticsearchSink2) and place the jar under docker/flume/build.
 
 ## Installation
-1. Run the deploy.sh script in the docker/. It will deploy all the components and load sample data to Neo4j and Elasticsearch.
-* Your REST serive will be available at e.g http://localhost:8080/graph?informi=869
+1. Run the deploy.sh script in the docker/ directory. It will deploy all the components and load sample data to Neo4j and Elasticsearch.
+* Your REST service will be available at e.g http://localhost:8080/graph?informi=869
 2. To remove the application, run the cleanup.sh script under the same directory.
 
 
