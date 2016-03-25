@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -24,6 +25,10 @@ public class InformizESIndexManager {
 	public static final String DEFAULT_HOST = "localhost";
 	public static final int DEFAULT_PORT = 9300;
 
+	public static final String ES_HOST_KEY = "es.host";
+	public static final String ES_PORT_KEY = "es.port";
+	public static final String ES_NAME_KEY = "es.name";
+	
 	public static final String INFORMIZ_INDEX = "informiz";
 	public static final String INFORMI_TYPE = "informi";
 
@@ -39,11 +44,12 @@ public class InformizESIndexManager {
 		}
 	}
 
-	public static void init() {
+	public static void init(Properties props) {
 		init(Settings.settingsBuilder()
-				.put("cluster.name", DEFAULT_CLUSTER_NAME)
+				.put("cluster.name", props.getOrDefault(ES_NAME_KEY, DEFAULT_CLUSTER_NAME))
 				/*.put("client.transport.sniff", true)*/.build(),
-				Arrays.asList(new HostProps(DEFAULT_HOST, DEFAULT_PORT)));
+				Arrays.asList(new HostProps(props.getOrDefault(ES_HOST_KEY, DEFAULT_HOST).toString(), 
+						Integer.valueOf(props.getOrDefault(ES_PORT_KEY, DEFAULT_PORT).toString()))));
 	}
 
 	public static void init(Settings settings, List<HostProps> hosts) {
@@ -112,7 +118,6 @@ public class InformizESIndexManager {
 
 			client.admin().indices().preparePutMapping(INFORMIZ_INDEX).setType(INFORMI_TYPE)
 			.setSource(xbMapping).execute().actionGet();
-
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to create informiz index", e);
 		}

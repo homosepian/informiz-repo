@@ -3,10 +3,12 @@ package org.informiz.landscape;
 import static spark.Spark.get;
 import static spark.Spark.port;
 
+import java.io.FileInputStream;
+import java.util.Properties;
 import java.util.UUID;
 
-import org.informiz.util.LandscapeRequest;
-import org.informiz.util.Util;
+import org.informiz.comm.LandscapeRequest;
+import static org.informiz.comm.Util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,10 @@ import spark.Spark;
 import spark.servlet.SparkApplication;
 
 public class LandscapeRoutes implements SparkApplication {
+	
+	public static final String DEFAULT_WEB_PORT = "8080";
+	public static final String WEB_PORT_KEY = "web.port";
+	
 	public static final int DEFAULT_SIZE_LIMIT = 30;
 
 	static Logger logger = LoggerFactory.getLogger(LandscapeRoutes.class);
@@ -36,7 +42,9 @@ public class LandscapeRoutes implements SparkApplication {
     private String replyQueueName;
     private QueueingConsumer consumer;
 
-    public LandscapeRoutes(String hostname) throws Exception{
+    public LandscapeRoutes(Properties props) throws Exception{
+		String hostname = props.getOrDefault(QUEUE_HOST_KEY, DEFAULT_QUEUE_HOST).toString();
+		
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(hostname);
         connection = factory.newConnection();
@@ -63,7 +71,7 @@ public class LandscapeRoutes implements SparkApplication {
 					informi = Integer.valueOf(request.queryParams("informi"));
 				} catch (NumberFormatException e) {
 					logger.error("Invalid informi id " + request.queryParams("informi"));
-					return Util.createJsonErrorResp("Invalid informi id"); // don't return the param in case it's malicious
+					return createJsonErrorResp("Invalid informi id"); // don't return the param in case it's malicious
 				}
                 int limit = DEFAULT_SIZE_LIMIT;
                 if (request.queryParams("limit") != null) {
@@ -126,7 +134,7 @@ public class LandscapeRoutes implements SparkApplication {
 
 			LandscapeRequest req = new LandscapeRequest(informiId, maxSize);
 			String body = gson.toJson(req);
-			channel.basicPublish("", Util.LANDSCAPE_QUEUE_NAME, props, body.getBytes("UTF-8"));
+			channel.basicPublish("", LANDSCAPE_QUEUE_NAME, props, body.getBytes("UTF-8"));
 
 			while (true) {
 				QueueingConsumer.Delivery delivery = consumer.nextDelivery();
@@ -137,7 +145,7 @@ public class LandscapeRoutes implements SparkApplication {
 			}
 		} catch (Exception e) {
 			logger.error("Error while attempting to retrieve a " + maxSize + " node landscape for informi " + informiId + " : " + e.getMessage(), e);
-			response = Util.createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
+			response = createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
 		}
 
 		return response;
@@ -152,20 +160,21 @@ public class LandscapeRoutes implements SparkApplication {
     public static void main(String[] args) {
     	LandscapeRoutes routes = null;
     	
-        port(Util.getWebPort());
-        String hostname = "localhost";
-        if (args.length > 0) {
-        	hostname = args[0];
-        }
-        try {
-			routes = new LandscapeRoutes(hostname);
+    	try (FileInputStream in = new FileInputStream(args[0])) {
+			Properties props = new Properties();
+			props.load(in);
+			
+			int portNum = Integer.valueOf(props.getOrDefault(WEB_PORT_KEY, DEFAULT_WEB_PORT).toString());
+
+			port(portNum);
+			routes = new LandscapeRoutes(props);
 			routes.init();
-		} catch (Exception e) {
+    	} catch (Exception e) {
 			logger.error("Exception while trying to initialize landscape endpoint: " + e.getMessage(), e);
-			e.printStackTrace();
 			if (routes != null) {
 				routes.close();
 			}
+			System.exit(1);
 		}
     }
 

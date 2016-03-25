@@ -1,4 +1,4 @@
-package org.informiz.util;
+package org.informiz.comm;
 
 public class LandscapeRequest {
 	int informiId;

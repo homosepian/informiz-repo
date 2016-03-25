@@ -19,7 +19,7 @@ public class GraphImporter {
 	
 	public GraphImporter(Properties props) {
 		this.props = props;
-		cypher = new JdbcCypherExecutor(props.getProperty(GRAPH_URL));
+		cypher = new JdbcCypherExecutor(props);
 	}
 	
 	public void initGraph() {
@@ -38,7 +38,6 @@ public class GraphImporter {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("Working Directory = " + System.getProperty("user.dir"));
 		GraphImporter importer = null;
 		try (FileInputStream in = new FileInputStream(args[0])) {
 			Properties props = new Properties();

@@ -1,9 +1,11 @@
 package org.informiz.export;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.informiz.es.InformizESIndexManager;
 import org.informiz.executor.CypherExecutor;
@@ -14,6 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InformiExportManager {
+	public static final String DEFAULT_FLUME_HOST = "localhost";
+	public static final String DEFAULT_FLUME_PORT = "44444";
+
+	public static final String FLUME_HOST_KEY = "flume.host";
+	public static final String FLUME_PORT_KEY = "flume.port";
+
 	static Logger logger = LoggerFactory.getLogger(InformiExportManager.class);
 	
 	private static final String INFORMIZ_QUERY = "MATCH (node:Informi) RETURN node";
@@ -21,10 +29,13 @@ public class InformiExportManager {
 	private final CypherExecutor cypher;
 	private final GraphEventExporter eventExporter;
 	
-	public InformiExportManager(String graphUrl, String graphUser, String graphPass, String flumeHost, int flumePort) {
-		cypher = new JdbcCypherExecutor(graphUrl, graphUser, graphPass);
+	public InformiExportManager(Properties props) {
+		cypher = new JdbcCypherExecutor(props);
+		String flumeHost = props.getOrDefault(FLUME_HOST_KEY, DEFAULT_FLUME_HOST).toString();
+		int flumePort = Integer.valueOf(props.getOrDefault(FLUME_PORT_KEY, DEFAULT_FLUME_PORT).toString());
+		
 		eventExporter = new GraphEventExporter(flumeHost, flumePort);
-		InformizESIndexManager.init();
+		InformizESIndexManager.init(props);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -46,19 +57,17 @@ public class InformiExportManager {
 		cypher.shutdown();		
 	}
 
-	/**
-	 * @param args - 
-	 *    args[0] - Neo4j cluster URL, e.g http://localhost:7474 
-	 *    args[1] - Neo4j user, e.g neo4j 
-	 *    args[2] - Neo4j password, e.g neo4j 
-	 *    args[3] - Flume hostname, e.g localhost
-	 *    args[4] - Flume port, e.g 44444
-	 */
 	public static void main(String[] args) {
 		InformiExportManager exporter = null;
-		try {
-			exporter = new InformiExportManager(args[0], args[1], args[2], args[3], Integer.valueOf(args[4]));
+		
+		try (FileInputStream in = new FileInputStream(args[0])) {
+			Properties props = new Properties();
+			props.load(in);
+			exporter = new InformiExportManager(props);
 			exporter.exportInformiz();
+		} catch (Exception e) {
+			logger.error("Exception while trying to initialize landscape service: " + e.getMessage(), e);
+			System.exit(1);
 		} finally {
 			if (exporter != null) exporter.close();
 		}

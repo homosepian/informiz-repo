@@ -1,17 +1,22 @@
 package org.informiz.landscape;
 
+import static org.informiz.comm.Util.DEFAULT_QUEUE_HOST;
+import static org.informiz.comm.Util.LANDSCAPE_QUEUE_NAME;
+import static org.informiz.comm.Util.QUEUE_HOST_KEY;
+import static org.informiz.comm.Util.createJsonErrorResp;
 import static org.neo4j.helpers.collection.MapUtil.map;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import org.informiz.comm.LandscapeRequest;
 import org.informiz.executor.CypherExecutor;
 import org.informiz.executor.JdbcCypherExecutor;
 import org.informiz.executor.QueryResultIterator;
-import org.informiz.util.LandscapeRequest;
-import org.informiz.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,33 +47,23 @@ public class LandscapeService {
     Channel channel = null;
     QueueingConsumer consumer = null;
 
-    public LandscapeService(String hostname) throws Exception {
-    	this(hostname, null, null);
-    }
-
-    public LandscapeService(String hostname, String user, String pass) throws Exception {
-    	cypher = createCypherExecutor(Util.getNeo4jUrl(),user,pass);
+    public LandscapeService(Properties props) throws Exception {
+    	cypher = new JdbcCypherExecutor(props);
     	ConnectionFactory factory = new ConnectionFactory();
-    	factory.setHost(hostname);
+    	String hostname = props.getOrDefault(QUEUE_HOST_KEY, DEFAULT_QUEUE_HOST).toString();
+		factory.setHost(hostname);
 
     	connection = factory.newConnection();
     	channel = connection.createChannel();
 
-    	channel.queueDeclare(Util.LANDSCAPE_QUEUE_NAME, false, false, false, null);
+    	channel.queueDeclare(LANDSCAPE_QUEUE_NAME, false, false, false, null);
 
     	channel.basicQos(1);
 
     	consumer = new QueueingConsumer(channel);
-		channel.basicConsume(Util.LANDSCAPE_QUEUE_NAME, false, consumer);
+		channel.basicConsume(LANDSCAPE_QUEUE_NAME, false, consumer);
     }
 
-    private CypherExecutor createCypherExecutor(String uri, String user, String pass) {
-        if (user != null) {
-            return new JdbcCypherExecutor(uri,user,pass);
-        }
-        return new JdbcCypherExecutor(uri);
-    }
-    
     public void process() {
     	Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		logger.info("Landscape service ready");
@@ -94,7 +89,7 @@ public class LandscapeService {
     			}
     			catch (Exception e){
     				logger.error("Error while attempting to retrieve landscape: " + e.getMessage(), e);
-    				asJson = Util.createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
+    				asJson = createJsonErrorResp("Failed to retrieve landscape: " + e.getMessage());
     			}
     			finally {  
     				channel.basicPublish( "", props.getReplyTo(), replyProps, asJson.getBytes("UTF-8"));
@@ -157,26 +152,17 @@ public class LandscapeService {
 	
 	public static void main(String[] args) {
 		LandscapeService service = null;
-		String username = null;
-		String password = null;
-		String hostname = "localhost";
-		if (args.length > 0) {
-			username = args[0];
-		}
-		if (args.length > 1) {
-			password = args[1];
-		}
-		if (args.length > 2) {
-			hostname = args[2];
-		}
-        try {
-        	service = new LandscapeService(hostname, username, password);
+		try (FileInputStream in = new FileInputStream(args[0])) {
+			Properties props = new Properties();
+			props.load(in);
+        	service = new LandscapeService(props);
 			service.process();
 		} catch (Exception e) {
 			logger.error("Exception while trying to initialize landscape service: " + e.getMessage(), e);
-    		if (service != null) {
+			if (service != null) {
 				service.close();
     		}
+			System.exit(1);
 		}
 	}
 }

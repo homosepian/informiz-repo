@@ -16,25 +16,33 @@ import org.slf4j.LoggerFactory;
  */
 public class JdbcCypherExecutor implements CypherExecutor {
 
+	public static final String DEFAULT_DB_HOST = "localhost";
+	public static final String DEFAULT_DB_PORT = "7474";
+	
+	public static final String APP_DB_USER_KEY = "neo4j.user";
+	public static final String APP_DB_PASS_KEY = "neo4j.pass";
+	public static final String APP_DB_HOST_KEY = "graph.host";
+	public static final String APP_DB_PORT_KEY = "graph.port";
+
 	static Logger logger = LoggerFactory.getLogger(JdbcCypherExecutor.class);
 
 	private final Connection conn;
 
-    public JdbcCypherExecutor(String url) {
-        this(url,"","");
-    }
-    
-    public JdbcCypherExecutor(String url,String username, String password) {
+	
+    public JdbcCypherExecutor(Properties appProps) {
         try {
         	final Properties props = new Properties();
-            props.put("user", username);
-            props.put("password", password);
-            conn = DriverManager.getConnection(url.replace("http://","jdbc:neo4j://"), props);
+            props.put("user", appProps.getOrDefault(APP_DB_USER_KEY, ""));
+            props.put("password", appProps.getOrDefault(APP_DB_PASS_KEY, ""));
+            String host = appProps.getOrDefault(APP_DB_HOST_KEY, DEFAULT_DB_HOST).toString();
+            String port = appProps.getOrDefault(APP_DB_PORT_KEY, DEFAULT_DB_PORT).toString();
+            String url = "jdbc:neo4j://" + host + ":" + port;
+            conn = DriverManager.getConnection(url, props);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-
+    
     @Override
     public QueryResultIterator query(String query, Map<String, Object> params) {
         try {
