@@ -19,8 +19,13 @@ Run mvn clean install -DskipITs to have the jar files built and copied to the do
 Due to a compatability issue between Flume and Elasticsearch, you will need to manually build [ElasticsearchSink2](https://github.com/lucidfrontier45/ElasticsearchSink2) and place the jar under docker/flume/build.
 
 ## Installation
+### With shell scripts
 1. Run the deploy.sh script in the docker/ directory. It will deploy all the components and load sample data to Neo4j and Elasticsearch.
 * Your REST service will be available at e.g http://localhost:8080/graph?informi=869
 2. To remove the application, run the cleanup.sh script under the same directory.
+### With docker-compose
+1. Run "docker-compose up" under the docker/ directory. It will deploy all the components and load sample data to Neo4j and Elasticsearch.
+* Your REST service will be available at e.g http://localhost:8080/graph?informi=869
+2. Note that after stopping the application you have to manually execute "rm -r $HOME/neo4j/data" in order to delete the smaple data.
 
 

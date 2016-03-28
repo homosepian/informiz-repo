@@ -1,0 +1,131 @@
+version: '2'
+
+networks:
+  informiz_net:
+    driver: bridge
+
+services:
+   neo:
+      image: neo4j
+      environment:
+         - NEO4J_AUTH=none
+      networks:
+         - informiz_net
+      volumes:
+         - ~/neo4j/data:/data
+         - ./iz-graph/resources:/resources
+      ports:
+         - "7474:7474"
+   
+   escluster:
+      build:
+         context: ./elasticsearch
+      container_name: escluster
+      networks:
+         - informiz_net
+      ports:
+         - "9200:9200"
+         - "9300:9300"
+
+   flume:
+      build:
+         context: ./flume
+      container_name: izagent
+      networks:
+         informiz_net:
+            aliases:
+               - izagent
+      ports:
+         - "44444:44444"
+      depends_on:
+         - escluster
+
+   iz-rabbit:
+      image: rabbitmq:latest
+      hostname: iz-rabbit
+      networks:
+         - informiz_net
+
+   iz_graph:
+      build:
+         context: ./iz-graph
+      depends_on:
+         - neo
+      networks:
+         - informiz_net
+      volumes:
+         - ./conf:/conf
+         - ./iz-graph/resources:/resources
+      entrypoint: 
+         - /conf/wait-for-it.sh
+         - neo:7474
+         - --strict
+         - --
+         - java
+         - -jar
+         - iz-importer-1.0-SNAPSHOT.jar
+         - "/conf/informiz.properties"
+
+   iz_search:
+      build:
+         context: ./iz-search
+      depends_on:
+         - iz_graph
+         - escluster
+      networks:
+         - informiz_net
+      volumes:
+         - ./conf:/conf
+      entrypoint: 
+         - /conf/wait-for-it.sh
+         - escluster:9200
+         - --strict
+         - --
+         - java
+         - -jar
+         - iz-search-1.0-SNAPSHOT.jar
+         - "/conf/informiz.properties"
+
+
+   lands_ser:
+      build:
+         context: ./lands-ser
+      depends_on:
+         - iz_graph
+         - iz-rabbit
+      networks:
+         - informiz_net
+      volumes:
+         - ./conf:/conf
+      entrypoint: 
+         - /conf/wait-for-it.sh
+         - iz-rabbit:5672
+         - --strict
+         - --
+         - java
+         - -jar
+         - lands-service-1.0-SNAPSHOT.jar
+         - "/conf/informiz.properties"
+
+   lands_rest:
+      build:
+         context: ./lands-rest
+      depends_on:
+         - lands_ser
+      networks:
+         - informiz_net
+      volumes:
+         - ./conf:/conf
+      ports:
+         - "8080:8080"
+      entrypoint: 
+         - /conf/wait-for-it.sh
+         - iz-rabbit:5672
+         - --strict
+         - --
+         - java
+         - -jar
+         - lands-endpoint-1.0-SNAPSHOT.jar
+         - "/conf/informiz.properties"
+
+
