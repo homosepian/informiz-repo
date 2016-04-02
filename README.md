@@ -16,7 +16,13 @@ The application exposes a [Spark-Java](http://www.sparkjava.com/) REST API for r
 ## Building the project
 Run mvn clean install -DskipITs to have the jar files built and copied to the docker build directories.
 
-Due to a compatability issue between Flume and Elasticsearch, you will need to manually build [ElasticsearchSink2](https://github.com/lucidfrontier45/ElasticsearchSink2) and place the jar under docker/flume/build.
+Due to a compatability issue between Flume and Elasticsearch you will need to use an alternative Flume sink implementation, [ElasticsearchSink2](https://github.com/lucidfrontier45/ElasticsearchSink2). So before building the project, do the following:
+1. Clone the ElasticsearchSink2 repository and build the elasticsearch-sink2-assembly-1.0.jar artifact.
+2. Copy the jar to docker/flume/build.
+3. Install it into your local repository:
+```
+mvn install:install-file -Dfile=/path/to/elasticsearch-sink2-assembly-1.0.jar -DgroupId=lucidfrontier45 -DartifactId=elasticsearch-sink2-assembly -Dversion=1.0 -Dpackaging=jar
+```
 
 ## Installation
 
